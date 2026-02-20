@@ -1,6 +1,6 @@
 # CreatorPilot AI — Mobile App
 
-AI-powered YouTube growth insights for creators. A production-grade Flutter mobile application that connects to the [context-hub-api](../my-youtube-analytics/context-hub-api) and [context-hub-mcp](../my-youtube-analytics/context-hub-mcp) backend services.
+AI-powered YouTube growth insights for creators. A production-grade Flutter mobile application that connects to the [creatorpilot-api](../creatorpilot-api) and [creatorpilot-mcp](../creatorpilot-mcp) backend services.
 
 ---
 
@@ -150,7 +150,7 @@ The app uses `flutter_appauth` for a fully native OAuth flow:
 
 ## API Endpoints
 
-All endpoints are proxied through `context-hub-api` (FastAPI gateway) to `context-hub-mcp`.
+All endpoints are proxied through `creatorpilot-api` (FastAPI gateway) to `creatorpilot-mcp`.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -169,8 +169,8 @@ All endpoints are proxied through `context-hub-api` (FastAPI gateway) to `contex
 - Flutter SDK (stable channel, ≥3.2.0)
 - Xcode 15+ (for iOS builds)
 - Running backend services:
-  - `context-hub-api` (default: `http://localhost:8000`)
-  - `context-hub-mcp` (default: `http://localhost:8001`)
+  - `creatorpilot-api` (default: `http://localhost:8000`)
+  - `creatorpilot-mcp` (default: `http://localhost:8001`)
 
 ### Setup
 
@@ -284,6 +284,13 @@ State is preserved between tabs via `IndexedStack`.
 | `freezed` | ^2.4.7 | Immutable data classes |
 | `json_serializable` | ^6.7.1 | JSON serialization |
 | `riverpod_generator` | ^2.4.0 | Provider code generation |
+
+---
+
+## Recent Updates
+- **Plan Enforcement UI**:
+  - Implemented real-time usage counter logic with proactive send-button disabling when Free limits are exhausted.
+  - New visually distinct PRO upgrade modal and feature gates linked to backend `FORCE_PRO_MODE`.
 
 ---
 

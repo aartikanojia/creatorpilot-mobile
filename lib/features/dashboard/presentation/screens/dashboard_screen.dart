@@ -61,14 +61,17 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // ── Usage badge ─────────────────────────────────
-                      UsageBadge(
-                        used: user.queriesUsed,
-                        limit: user.queryLimit,
-                        isExhausted: user.isLimitExhausted,
-                        onUpgradeTap: () => _showUpgradeModal(context),
-                      ),
-                      const SizedBox(height: 24),
+                      // ── Usage badge (FREE only) ────────────────────
+                      if (user.isFree) ...[
+                        UsageBadge(
+                          used: user.queriesUsed,
+                          limit: user.queryLimit,
+                          isExhausted: user.isLimitExhausted,
+                          onUpgradeTap: () => _showUpgradeModal(context),
+                        ),
+                        const SizedBox(height: 24),
+                      ] else
+                        const SizedBox(height: 8),
 
                       // ── Channel Stats Row ───────────────────────────
                       channelStats.when(

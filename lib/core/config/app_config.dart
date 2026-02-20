@@ -5,7 +5,7 @@
 class AppConfig {
   const AppConfig._();
 
-  /// API base URL for the context-hub-api gateway.
+  /// API base URL for the CreatorPilot API gateway.
   /// Override with: `--dart-define=API_BASE_URL=https://your-server.com`
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',

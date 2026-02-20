@@ -50,7 +50,7 @@ class WelcomeHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'PRO',
+                  'PRO • Unlimited',
                   style: AppTextStyles.labelSmall.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

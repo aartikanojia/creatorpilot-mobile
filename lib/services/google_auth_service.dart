@@ -62,7 +62,11 @@ class GoogleAuthService {
           _redirectUrl,
           serviceConfiguration: _serviceConfig,
           scopes: _scopes,
-          preferEphemeralSession: false,
+          preferEphemeralSession: true,
+          additionalParameters: {
+            'prompt': 'consent',
+            'access_type': 'offline',
+          },
         ),
       );
     } catch (e) {

@@ -73,53 +73,85 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final messages = ref.watch(chatMessagesProvider);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
-    final isExhausted = user?.isLimitExhausted ?? false;
+    final isPro = user?.isPro ?? false;
+    final isExhausted = !isPro && (user?.isLimitExhausted ?? false);
 
     return Column(
       children: [
-        // ── Usage Counter ─────────────────────────────────────────
+        // ── Usage Counter / PRO Badge ─────────────────────────────
         if (user != null)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  size: 18,
-                  color: isExhausted ? AppColors.error : AppColors.accent,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isExhausted
-                      ? 'Limit reached'
-                      : '${user.queriesUsed} / ${user.queryLimit} queries used',
-                  style: AppTextStyles.labelMedium.copyWith(
-                    color: isExhausted ? AppColors.error : AppColors.textSecondary,
-                  ),
-                ),
-                const Spacer(),
-                if (isExhausted)
-                  GestureDetector(
-                    onTap: _showUpgradeModal,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: AppColors.accentGradient,
+            child: isPro
+                // PRO: show badge only, no counter
+                ? Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Upgrade',
-                        style: AppTextStyles.labelSmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: AppColors.accentGradient,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'PRO • Unlimited',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
+                  )
+                // FREE: show usage counter
+                : Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 18,
+                        color: isExhausted ? AppColors.error : AppColors.accent,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isExhausted
+                            ? 'Limit reached'
+                            : '${user.queriesUsed} / ${user.queryLimit} queries used',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          color: isExhausted
+                              ? AppColors.error
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (isExhausted)
+                        GestureDetector(
+                          onTap: _showUpgradeModal,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: AppColors.accentGradient,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Upgrade',
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
 
         const Divider(color: AppColors.divider, height: 1),
@@ -361,7 +393,9 @@ class _ChatInput extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Ask about your channel...',
+                        hintText: isDisabled
+                            ? 'Upgrade to PRO to continue...'
+                            : 'Ask about your channel...',
                         hintStyle: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.textMuted,
                         ),
