@@ -288,6 +288,12 @@ State is preserved between tabs via `IndexedStack`.
 ---
 
 ## Recent Updates
+
+- **Intelligent Chat UX**:
+  - **Rich Text & Subheadings**: AI messages now parse markdown `**bold**` syntax for stronger visual hierarchy and subheadings.
+  - **Animated Loading State**: Replaced static loading dots with a premium `AnimatedSwitcher` containing a smooth `AnimatedTypingIndicator` and a sequential `RotatingStatusText` ("Analyzing video performance...", etc).
+  - **Dynamic Input Box**: Added a custom 3D glossy chat icon to the user input field.
+  - **Per-message Actions**: Added inline thumbs up/down and copy-to-clipboard functionality to all AI responses.
 - **Plan Enforcement UI**:
   - Implemented real-time usage counter logic with proactive send-button disabling when Free limits are exhausted.
   - New visually distinct PRO upgrade modal and feature gates linked to backend `FORCE_PRO_MODE`.

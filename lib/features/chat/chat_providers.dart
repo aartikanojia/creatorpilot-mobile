@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/presentation/providers/auth_providers.dart';
 import '../dashboard/data/dashboard_repository_impl.dart';
-import '../dashboard/domain/entities/ask_result.dart';
+
 
 /// A single chat message (user or AI).
 class ChatMessage {
@@ -11,6 +11,8 @@ class ChatMessage {
     required this.isUser,
     this.isLoading = false,
     this.isError = false,
+    this.isLiked = false,
+    this.isDisliked = false,
     this.timestamp,
   });
 
@@ -18,7 +20,29 @@ class ChatMessage {
   final bool isUser;
   final bool isLoading;
   final bool isError;
+  final bool isLiked;
+  final bool isDisliked;
   final DateTime? timestamp;
+
+  ChatMessage copyWith({
+    String? text,
+    bool? isUser,
+    bool? isLoading,
+    bool? isError,
+    bool? isLiked,
+    bool? isDisliked,
+    DateTime? timestamp,
+  }) {
+    return ChatMessage(
+      text: text ?? this.text,
+      isUser: isUser ?? this.isUser,
+      isLoading: isLoading ?? this.isLoading,
+      isError: isError ?? this.isError,
+      isLiked: isLiked ?? this.isLiked,
+      isDisliked: isDisliked ?? this.isDisliked,
+      timestamp: timestamp ?? this.timestamp,
+    );
+  }
 }
 
 /// Manages the list of chat messages.
@@ -86,6 +110,28 @@ class ChatMessagesNotifier extends StateNotifier<List<ChatMessage>> {
         ),
       ];
     }
+  }
+
+  /// Toggle like for a message at [index]. Clears dislike.
+  void toggleLike(int index) {
+    final messages = List<ChatMessage>.from(state);
+    final msg = messages[index];
+    messages[index] = msg.copyWith(
+      isLiked: !msg.isLiked,
+      isDisliked: false,
+    );
+    state = messages;
+  }
+
+  /// Toggle dislike for a message at [index]. Clears like.
+  void toggleDislike(int index) {
+    final messages = List<ChatMessage>.from(state);
+    final msg = messages[index];
+    messages[index] = msg.copyWith(
+      isDisliked: !msg.isDisliked,
+      isLiked: false,
+    );
+    state = messages;
   }
 
   void clear() {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/widgets/animated_typing_indicator.dart';
+import '../../shared/widgets/rotating_status_text.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../auth/presentation/providers/auth_providers.dart';
@@ -11,7 +14,8 @@ import 'chat_providers.dart';
 ///
 /// Features:
 /// - Scrollable message list with modern bubbles
-/// - Suggestion chips for quick queries
+/// - Vertical suggestion cards for empty state
+/// - Per-AI-message 👍 👎 📋 action bar
 /// - Input field pinned to bottom
 /// - Usage counter in header
 /// - Upgrade CTA when limit exhausted
@@ -27,10 +31,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scrollController = ScrollController();
 
   static const _suggestions = [
-    'Analyze my last video',
-    'How can I grow faster?',
-    'What content should I post?',
-    'Review my channel stats',
+    (icon: Icons.play_circle_outline_rounded, text: 'Analyze my last video'),
+    (icon: Icons.bar_chart_rounded, text: 'Weekly channel summary'),
+    (icon: Icons.rocket_launch_rounded, text: 'How can I grow faster?'),
+    (icon: Icons.upload_file_rounded, text: 'What should I upload next?'),
+    (icon: Icons.emoji_events_rounded, text: 'Why did this video perform best?'),
   ];
 
   @override
@@ -159,43 +164,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         // ── Messages or Empty State ───────────────────────────────
         Expanded(
           child: messages.isEmpty
-              ? _buildEmptyState()
+              ? _buildEmptyState(isExhausted)
               : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                   itemCount: messages.length,
-                  itemBuilder: (context, index) =>
-                      _MessageBubble(message: messages[index]),
+                  itemBuilder: (context, index) => _MessageBubble(
+                    message: messages[index],
+                    index: index,
+                  ),
                 ),
         ),
-
-        // ── Suggestion Chips ──────────────────────────────────────
-        if (messages.isEmpty && !isExhausted)
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            height: 44,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _suggestions.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                return ActionChip(
-                  label: Text(
-                    _suggestions[index],
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  backgroundColor: AppColors.cardBg,
-                  side: BorderSide(color: AppColors.border),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  onPressed: isExhausted ? null : () => _submit(_suggestions[index]),
-                );
-              },
-            ),
-          ),
 
         // ── Input Box ─────────────────────────────────────────────
         _ChatInput(
@@ -209,42 +188,144 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildEmptyState(bool isExhausted) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.accentGradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // ── Hero ────────────────────────────────────────────────
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: AppColors.accentGradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.smart_toy_rounded,
+                    size: 36,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'AI Assistant',
+                  style: AppTextStyles.headlineMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Ask anything about your channel\nperformance and growth strategy',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+
+          // ── Suggestion Cards ─────────────────────────────────────
+          if (!isExhausted) ...[
+            Text(
+              'Suggested queries',
+              style: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textMuted,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
-              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
-              Icons.smart_toy_rounded,
-              size: 36,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'AI Assistant',
-            style: AppTextStyles.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ask anything about your channel\nperformance and growth strategy',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
+            const SizedBox(height: 12),
+            ...List.generate(_suggestions.length, (i) {
+              final s = _suggestions[i];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: i < _suggestions.length - 1 ? 10 : 0,
+                ),
+                child: _SuggestionCard(
+                  icon: s.icon,
+                  text: s.text,
+                  onTap: () => _submit(s.text),
+                ),
+              );
+            }),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+// ── Suggestion Card ─────────────────────────────────────────────────────
+
+class _SuggestionCard extends StatelessWidget {
+  const _SuggestionCard({
+    required this.icon,
+    required this.text,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: AppColors.primaryLight,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -252,15 +333,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
 // ── Message Bubble ──────────────────────────────────────────────────────
 
-class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message});
+class _MessageBubble extends ConsumerWidget {
+  const _MessageBubble({
+    required this.message,
+    required this.index,
+  });
 
   final ChatMessage message;
+  final int index;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    Widget content;
+
     if (message.isLoading) {
-      return Padding(
+      content = Padding(
+        key: const ValueKey('loading'),
         padding: const EdgeInsets.only(bottom: 12),
         child: Align(
           alignment: Alignment.centerLeft,
@@ -276,72 +364,321 @@ class _MessageBubble extends StatelessWidget {
               ),
               border: Border.all(color: AppColors.border),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.accent,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Analyzing...',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textMuted,
-                  ),
-                ),
+                AnimatedTypingIndicator(),
+                SizedBox(height: 12),
+                RotatingStatusText(),
               ],
             ),
           ),
         ),
       );
-    }
+    } else {
+      final isUser = message.isUser;
 
-    final isUser = message.isUser;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Align(
-        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.82,
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: isUser
-                  ? const LinearGradient(
-                      colors: AppColors.primaryGradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-              color: isUser ? null : AppColors.cardBg,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(isUser ? 16 : 4),
-                topRight: Radius.circular(isUser ? 4 : 16),
-                bottomLeft: const Radius.circular(16),
-                bottomRight: const Radius.circular(16),
+      content = Padding(
+        key: const ValueKey('loaded'),
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Column(
+          crossAxisAlignment:
+              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            // ── Bubble ────────────────────────────────────────────
+            Align(
+              alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.82,
+                ),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: isUser
+                        ? const LinearGradient(
+                            colors: AppColors.primaryGradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: isUser ? null : AppColors.cardBg,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(isUser ? 16 : 4),
+                      topRight: Radius.circular(isUser ? 4 : 16),
+                      bottomLeft: const Radius.circular(16),
+                      bottomRight: const Radius.circular(16),
+                    ),
+                    border: isUser ? null : Border.all(color: AppColors.border),
+                  ),
+                  child: isUser
+                      ? Text(
+                          message.text,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: Colors.white,
+                            height: 1.5,
+                          ),
+                        )
+                      : _buildRichMessageBody(message),
               ),
-              border: isUser ? null : Border.all(color: AppColors.border),
+            ),
+          ),
+
+          // ── Action Row (AI only) ───────────────────────────────
+          if (!isUser) ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Thumbs Up
+                  _ActionIconButton(
+                    icon: message.isLiked
+                        ? Icons.thumb_up_rounded
+                        : Icons.thumb_up_outlined,
+                    color: message.isLiked
+                        ? Colors.greenAccent
+                        : AppColors.textMuted,
+                    tooltip: 'Helpful',
+                    onTap: () => ref
+                        .read(chatMessagesProvider.notifier)
+                        .toggleLike(index),
+                  ),
+                  const SizedBox(width: 4),
+                  // Thumbs Down
+                  _ActionIconButton(
+                    icon: message.isDisliked
+                        ? Icons.thumb_down_rounded
+                        : Icons.thumb_down_outlined,
+                    color: message.isDisliked
+                        ? Colors.redAccent
+                        : AppColors.textMuted,
+                    tooltip: 'Not helpful',
+                    onTap: () => ref
+                        .read(chatMessagesProvider.notifier)
+                        .toggleDislike(index),
+                  ),
+                  const SizedBox(width: 4),
+                  // Copy
+                  _ActionIconButton(
+                    icon: Icons.copy_rounded,
+                    color: AppColors.textMuted,
+                    tooltip: 'Copy',
+                    onTap: () async {
+                      await Clipboard.setData(
+                          ClipboardData(text: message.text));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context)
+                          ..clearSnackBars()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.greenAccent,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Copied to clipboard',
+                                    style: AppTextStyles.labelMedium.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(
+                                    color: AppColors.border, width: 1),
+                              ),
+                              backgroundColor: const Color(0xFF1E1E2C),
+                              elevation: 8,
+                            ),
+                          );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ] else
+            const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+
+  return AnimatedSwitcher(
+    duration: const Duration(milliseconds: 400),
+    switchInCurve: Curves.easeOut,
+    switchOutCurve: Curves.fastOutSlowIn,
+    transitionBuilder: (child, animation) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+    child: content,
+  );
+}
+
+  /// Parses markdown-style **bold** headings and renders them with
+  /// stronger typography while keeping body text clean.
+  static Widget _buildRichMessageBody(ChatMessage message) {
+    final textColor =
+        message.isError ? AppColors.error : AppColors.textPrimary;
+    final lines = message.text.split('\n');
+
+    final headingPattern = RegExp(r'^\*\*(.+)\*\*$');
+    final inlineBoldPattern = RegExp(r'\*\*(.+?)\*\*');
+
+    final children = <Widget>[];
+    bool previousWasHeading = false;
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+
+      // Skip empty lines but add spacing
+      if (line.isEmpty) {
+        if (children.isNotEmpty && !previousWasHeading) {
+          children.add(const SizedBox(height: 6));
+        }
+        previousWasHeading = false;
+        continue;
+      }
+
+      // Full-line heading: **Heading Text**
+      final headingMatch = headingPattern.firstMatch(line);
+      if (headingMatch != null) {
+        final headingText = headingMatch.group(1)!;
+        children.add(
+          Padding(
+            padding: EdgeInsets.only(
+              top: children.isNotEmpty ? 20 : 0,
+              bottom: 8,
             ),
             child: Text(
-              message.text,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: isUser
-                    ? Colors.white
-                    : message.isError
-                        ? AppColors.error
-                        : AppColors.textPrimary,
-                height: 1.6,
+              headingText,
+              style: AppTextStyles.headlineMedium.copyWith(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+                color: textColor,
+                height: 1.3,
               ),
             ),
           ),
+        );
+        previousWasHeading = true;
+        continue;
+      }
+
+      // Body line — may contain inline **bold** fragments
+      if (inlineBoldPattern.hasMatch(line)) {
+        final spans = <InlineSpan>[];
+        int lastEnd = 0;
+
+        for (final match in inlineBoldPattern.allMatches(line)) {
+          if (match.start > lastEnd) {
+            spans.add(TextSpan(
+              text: line.substring(lastEnd, match.start),
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontSize: 15,
+                color: textColor,
+                height: 1.5,
+              ),
+            ));
+          }
+          spans.add(TextSpan(
+            text: match.group(1),
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+              height: 1.5,
+            ),
+          ));
+          lastEnd = match.end;
+        }
+
+        if (lastEnd < line.length) {
+          spans.add(TextSpan(
+            text: line.substring(lastEnd),
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontSize: 15,
+              color: textColor,
+              height: 1.5,
+            ),
+          ));
+        }
+
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: RichText(text: TextSpan(children: spans)),
+          ),
+        );
+      } else {
+        // Plain body text
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              line,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                color: textColor,
+                height: 1.5,
+              ),
+            ),
+          ),
+        );
+      }
+      previousWasHeading = false;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    );
+  }
+}
+
+// ── Action Icon Button ──────────────────────────────────────────────────
+
+class _ActionIconButton extends StatelessWidget {
+  const _ActionIconButton({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 18, color: color),
         ),
       ),
     );
@@ -393,17 +730,53 @@ class _ChatInput extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: isDisabled
-                            ? 'Upgrade to PRO to continue...'
-                            : 'Ask about your channel...',
+                        hintText: 'Ask about your channel...',
                         hintStyle: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.textMuted,
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(
+                              left: 12, right: 10, top: 10, bottom: 10),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Colors.white, Color(0xFFE0E0E0)],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(14),
+                                topRight: Radius.circular(14),
+                                bottomRight: Radius.circular(14),
+                                bottomLeft: Radius.circular(4),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: 2), // visually center dots
+                                child: Icon(
+                                  Icons.more_horiz,
+                                  size: 16,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
+                        isDense: true,
                       ),
                       maxLines: 1,
                       textInputAction: TextInputAction.send,
@@ -460,16 +833,17 @@ class _ChatInput extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.primary.withOpacity(0.15),
-              AppColors.accent.withOpacity(0.10),
+              AppColors.primary.withValues(alpha: 0.15),
+              AppColors.accent.withValues(alpha: 0.10),
             ],
           ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.lock_outline_rounded, color: AppColors.warning, size: 22),
+            const Icon(Icons.lock_outline_rounded,
+                color: AppColors.warning, size: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -493,7 +867,8 @@ class _ChatInput extends StatelessWidget {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: AppColors.accentGradient,
