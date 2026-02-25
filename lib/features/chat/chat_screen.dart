@@ -35,7 +35,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     (icon: Icons.bar_chart_rounded, text: 'Weekly channel summary'),
     (icon: Icons.rocket_launch_rounded, text: 'How can I grow faster?'),
     (icon: Icons.upload_file_rounded, text: 'What should I upload next?'),
-    (icon: Icons.emoji_events_rounded, text: 'Why did this video perform best?'),
   ];
 
   @override

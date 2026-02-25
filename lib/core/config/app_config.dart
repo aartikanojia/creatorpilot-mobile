@@ -26,5 +26,5 @@ class AppConfig {
   static const int freePlanLimit = 3;
 
   /// API request timeout in seconds.
-  static const int apiTimeoutSeconds = 30;
+  static const int apiTimeoutSeconds = 90;
 }

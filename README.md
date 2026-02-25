@@ -103,8 +103,8 @@ lib/
 │   │           └── result_panel.dart      # AI response card with confidence bar
 │   │
 │   ├── chat/
-│   │   ├── chat_providers.dart            # ChatMessage model + StateNotifier
-│   │   └── chat_screen.dart              # Full chat UI: bubbles, suggestions, input, upgrade CTA
+│   │   ├── chat_providers.dart            # ChatMessage model (like/dislike, copyWith) + StateNotifier
+│   │   └── chat_screen.dart              # Full chat UI: rich text bubbles, suggestion cards, per-message actions, animated loading
 │   │
 │   ├── video/
 │   │   ├── data/
@@ -122,6 +122,8 @@ lib/
 │
 └── shared/                                # Reusable UI components
     ├── widgets/
+    │   ├── animated_typing_indicator.dart  # Smooth 3-dot typing animation for AI loading state
+    │   ├── rotating_status_text.dart      # Sequential status captions ("Analyzing video performance…", etc.)
     │   ├── loading_skeleton.dart           # Shimmer placeholder
     │   ├── error_state.dart               # Error message + retry button
     │   └── premium_card.dart              # Card with border + optional gradient
@@ -195,7 +197,7 @@ Edit `lib/core/config/app_config.dart` to set:
 | Config | Default | Description |
 |---|---|---|
 | `apiBaseUrl` | `http://localhost:8000` | Backend API gateway URL |
-| `apiTimeoutSeconds` | `30` | HTTP request timeout |
+| `apiTimeoutSeconds` | `90` | HTTP request timeout |
 | `defaultUserId` | `00000000-0000-0000-0000-000000000001` | Test user ID |
 
 ---
@@ -289,14 +291,18 @@ State is preserved between tabs via `IndexedStack`.
 
 ## Recent Updates
 
-- **Intelligent Chat UX**:
+- **Intelligent Chat UX (v2)**:
   - **Rich Text & Subheadings**: AI messages now parse markdown `**bold**` syntax for stronger visual hierarchy and subheadings.
-  - **Animated Loading State**: Replaced static loading dots with a premium `AnimatedSwitcher` containing a smooth `AnimatedTypingIndicator` and a sequential `RotatingStatusText` ("Analyzing video performance...", etc).
+  - **Animated Loading State**: Replaced static loading dots with a premium `AnimatedSwitcher` containing a smooth `AnimatedTypingIndicator` and a sequential `RotatingStatusText` ("Analyzing video performance…", etc.).
+  - **Vertical Suggestion Cards**: Empty-state chat now shows icon-rich, tappable suggestion cards instead of horizontal chips.
   - **Dynamic Input Box**: Added a custom 3D glossy chat icon to the user input field.
-  - **Per-message Actions**: Added inline thumbs up/down and copy-to-clipboard functionality to all AI responses.
+  - **Per-message Actions**: Inline thumbs up / thumbs down and copy-to-clipboard on every AI response, with `ChatMessage.copyWith` and `toggleLike`/`toggleDislike` in the state notifier.
+  - **Shared Widgets**: Extracted `AnimatedTypingIndicator` and `RotatingStatusText` into `shared/widgets/` for reuse.
 - **Plan Enforcement UI**:
   - Implemented real-time usage counter logic with proactive send-button disabling when Free limits are exhausted.
   - New visually distinct PRO upgrade modal and feature gates linked to backend `FORCE_PRO_MODE`.
+- **Config & Reliability**:
+  - Increased default API timeout from 30 → 90 seconds to handle longer AI inference calls.
 
 ---
 
